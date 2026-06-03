@@ -3,15 +3,22 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import ProblemBrowser from './pages/ProblemBrowser'
 import ProblemView from './pages/ProblemView'
+import Favorites from './pages/Favorites'
 import Settings from './pages/Settings'
 import useStore from './store/useStore'
 
 export default function App() {
-  const { setSettings, setLoggedIn, updateSubmission, setCurrentSubmission } = useStore()
+  const { setSettings, setLoggedIn, updateSubmission, setCurrentSubmission, setFavorites, setTheme } = useStore()
 
   useEffect(() => {
-    // Load settings
-    window.api.settings.get().then(setSettings)
+    // Load settings (and hydrate favorites from them)
+    window.api.settings.get().then(s => {
+      setSettings(s)
+      setFavorites(s.favorites || [])
+      const t = s.theme || 'dark'
+      document.documentElement.setAttribute('data-theme', t)
+      setTheme(t)
+    })
 
     // Check login status
     window.api.cf.checkLogin().then(({ loggedIn }) => setLoggedIn(loggedIn))
@@ -34,6 +41,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/problems" replace />} />
             <Route path="/problems" element={<ProblemBrowser />} />
+            <Route path="/favorites" element={<Favorites />} />
             <Route path="/problem/:contestId/:index" element={<ProblemView />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>

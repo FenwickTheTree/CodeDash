@@ -64,7 +64,8 @@ export async function getProblems(filters = {}) {
 
   const random = filters.random ? (problems[Math.floor(Math.random() * problems.length)] || null) : undefined
 
-  return { problems: problems.slice(0, 200), ...(random !== undefined && { random }) }
+  // Return the full filtered set (the UI handles search + display limits).
+  return { problems, ...(random !== undefined && { random }) }
 }
 
 export async function getUserInfo(handle) {

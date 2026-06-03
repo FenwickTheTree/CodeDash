@@ -3,7 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
 import { getProblems, getUserInfo, getUserStatus, getSubmissionStatus } from './services/cfApi.js'
-import { getSampleTests, submitSolution } from './services/cfSubmitter.js'
+import { getSampleTests, submitSolution, checkLoggedIn } from './services/cfSubmitter.js'
 import { runTests, getFilesInDir } from './services/localRunner.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -11,7 +11,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DEFAULTS = {
   handle: '', apiKey: '', apiSecret: '', codeDirectory: '',
   cppCompiler: '/usr/bin/g++', javaCompiler: 'javac', javaRunner: 'java',
-  pythonInterpreter: '/usr/bin/python3', preferredLanguage: 'cpp17', cfLanguageId: '54'
+  pythonInterpreter: '/usr/bin/python3', preferredLanguage: 'cpp17', cfLanguageId: '54',
+  favorites: [],
+  theme: 'dark'
 }
 
 // Lightweight JSON settings store (replaces electron-store for Electron 31 ESM compat)
@@ -149,9 +151,8 @@ ipcMain.handle('cf:login', () => {
 
 ipcMain.handle('cf:checkLogin', async () => {
   try {
-    const cookies = await session.defaultSession.cookies.get({ domain: 'codeforces.com' })
-    const hasSession = cookies.some(c => c.name === 'JSESSIONID' || c.name === '39ce7' || c.name === 'X-User-Sha1')
-    return { loggedIn: hasSession }
+    // Authoritative check (looks for the logout link on a real CF page).
+    return await checkLoggedIn()
   } catch {
     return { loggedIn: false }
   }
@@ -184,11 +185,41 @@ ipcMain.handle('cf:getSampleTests', async (_, contestId, index) => {
 
 ipcMain.handle('cf:submit', async (_, params) => {
   const result = await submitSolution(params)
-  if (result.submissionId) {
-    pollSubmission(result.submissionId, params.handle)
+
+  // Verdict polling needs the CF handle. Prefer the one from Settings, but fall
+  // back to the actual logged-in handle so polling works even if Settings is blank.
+  let handle = params.handle
+  if (!handle) {
+    handle = (await checkLoggedIn().catch(() => ({})))?.handle || null
   }
-  return result
+  console.log('[cfSubmit] polling handle:', handle)
+
+  // The submit page scrape may not yield the id — fall back to the API and find
+  // the freshly created submission for this problem.
+  let submissionId = result.submissionId
+  if (!submissionId && handle) {
+    submissionId = await findRecentSubmissionId({ ...params, handle }).catch(() => null)
+  }
+
+  if (submissionId && handle) {
+    pollSubmission(submissionId, handle)
+  }
+  // `polling` tells the renderer whether live verdicts will arrive.
+  return { ...result, submissionId, handle, polling: !!(submissionId && handle) }
 })
+
+async function findRecentSubmissionId({ handle, contestId, problemIndex }) {
+  // CF may take a moment to register the submission; retry a few times.
+  for (let i = 0; i < 5; i++) {
+    const subs = await getUserStatus(handle, 1, 10).catch(() => [])
+    const match = subs.find(s =>
+      s.problem && s.problem.contestId === Number(contestId) && s.problem.index === problemIndex
+    )
+    if (match) return match.id
+    await new Promise(r => setTimeout(r, 1500))
+  }
+  return null
+}
 
 ipcMain.handle('cf:getSubmissionStatus', async (_, submissionId, handle) => {
   return getSubmissionStatus(submissionId, handle)
@@ -232,7 +263,7 @@ ipcMain.handle('file:getFilesInDir', async (_, dir) => {
 })
 
 ipcMain.handle('file:readFile', async (_, filePath) => {
-  return fs.readFile(filePath, 'utf-8')
+  return fs.promises.readFile(filePath, 'utf-8')
 })
 
 ipcMain.handle('shell:openExternal', (_, url) => shell.openExternal(url))

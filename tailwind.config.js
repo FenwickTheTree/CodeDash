@@ -4,28 +4,33 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Semantic backgrounds + borders (CSS-var driven)
         bg: {
-          primary: '#0d1117',
-          secondary: '#161b22',
-          tertiary: '#21262d'
+          primary:   'var(--bg-primary)',
+          secondary: 'var(--bg-secondary)',
+          tertiary:  'var(--bg-tertiary)'
         },
         border: {
-          DEFAULT: '#30363d'
+          DEFAULT: 'var(--border)'
         },
         accent: {
-          green: '#2ea043',
-          blue: '#1f6feb',
-          red: '#da3633',
-          yellow: '#d29922',
-          purple: '#8957e5'
+          green:  'var(--accent-green)',
+          blue:   'var(--accent-blue)',
+          red:    'var(--accent-red)',
+          yellow: 'var(--accent-yellow)',
+          purple: 'var(--accent-purple)'
         },
-        cf: {
-          ac: '#1a7f37',
-          wa: '#cf222e',
-          tle: '#9a6700',
-          mle: '#8250df',
-          ce: '#6e7781',
-          pending: '#1f6feb'
+        // Remap the entire gray scale to CSS vars so text-gray-* flips with the theme.
+        gray: {
+          100: 'var(--gray-100)',
+          200: 'var(--gray-200)',
+          300: 'var(--gray-300)',
+          400: 'var(--gray-400)',
+          500: 'var(--gray-500)',
+          600: 'var(--gray-600)',
+          700: 'var(--gray-700)',
+          800: 'var(--gray-800)',
+          900: 'var(--gray-900)',
         }
       }
     }

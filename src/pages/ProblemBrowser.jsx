@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Star, Users, Tag, ChevronRight, Loader2, AlertCircle } from 'lucide-react'
+import { Star, Users, Tag, ChevronRight, Loader2, AlertCircle, Search, X } from 'lucide-react'
 import ProblemFilter from '../components/ProblemFilter'
 import useStore from '../store/useStore'
+
+const DISPLAY_LIMIT = 300
 
 const RATING_COLORS = {
   800: 'text-gray-400',
@@ -28,13 +30,18 @@ const RATING_COLORS = {
   2800: 'text-red-400',
   2900: 'text-red-400',
   3000: 'text-red-400',
-  3500: 'text-red-400'
+  3500: 'text-red-400',
+  3600: 'text-red-400',
+  3700: 'text-red-400',
+  3800: 'text-red-400',
+  3900: 'text-red-400',
+  4000: 'text-red-400'
 }
 
 function ratingColor(rating) {
   if (!rating) return 'text-gray-500'
   const bucket = Math.floor(rating / 100) * 100
-  return RATING_COLORS[Math.min(bucket, 3500)] || 'text-red-400'
+  return RATING_COLORS[Math.min(bucket, 4000)] || 'text-red-400'
 }
 
 function verdictShort(v) {
@@ -46,10 +53,29 @@ function verdictShort(v) {
 
 export default function ProblemBrowser() {
   const navigate = useNavigate()
-  const { problems, setProblems, setActiveProblem, setSampleTests, setTestResults } = useStore()
+  const { problems, setProblems, setActiveProblem, setSampleTests, setTestResults,
+    favorites, toggleFavorite } = useStore()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [currentFilters, setCurrentFilters] = useState({ minRating: 800, maxRating: 3500, tags: [], sortBy: 'rating' })
+  const [search, setSearch] = useState('')
+  const [currentFilters, setCurrentFilters] = useState({ minRating: 800, maxRating: 4000, tags: [], sortBy: 'rating' })
+
+  const favKeys = useMemo(
+    () => new Set(favorites.map(f => `${f.contestId}_${f.index}`)),
+    [favorites]
+  )
+
+  // Client-side search: by name, or by problem code like "2118B" / "2118".
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return problems
+    return problems.filter(p => {
+      const code = `${p.contestId}${p.index}`.toLowerCase()
+      return code.includes(q) || (p.name && p.name.toLowerCase().includes(q))
+    })
+  }, [problems, search])
+
+  const shown = filtered.slice(0, DISPLAY_LIMIT)
 
   useEffect(() => {
     fetchProblems(currentFilters)
@@ -99,10 +125,37 @@ export default function ProblemBrowser() {
   return (
     <div className="flex flex-col h-full">
       <div className="px-6 py-4 border-b border-border">
-        <h1 className="text-lg font-semibold text-white">Problems</h1>
-        <p className="text-xs text-gray-500 mt-0.5">
-          {loading ? 'Loading...' : `${problems.length} problems`}
-        </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-lg font-semibold text-white">Problems</h1>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {loading
+                ? 'Loading...'
+                : search
+                  ? `${filtered.length} of ${problems.length} problems`
+                  : `${problems.length} problems`}
+            </p>
+          </div>
+
+          <div className="ml-auto relative w-72">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name or code (e.g. 2118B)"
+              className="w-full bg-bg-tertiary border border-border rounded pl-8 pr-7 py-1.5 text-sm text-white placeholder-gray-600"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       <ProblemFilter onFilter={handleFilter} onRandom={handleRandom} loading={loading} />
@@ -122,18 +175,31 @@ export default function ProblemBrowser() {
           </div>
         )}
 
-        {!loading && !error && problems.length === 0 && (
+        {!loading && !error && filtered.length === 0 && (
           <div className="flex items-center justify-center h-40 text-gray-500 text-sm">
-            No problems match the current filters.
+            {search ? `No problems match "${search}".` : 'No problems match the current filters.'}
           </div>
         )}
 
-        {!loading && problems.map(problem => (
+        {!loading && shown.map(problem => {
+          const isFav = favKeys.has(`${problem.contestId}_${problem.index}`)
+          return (
           <div
             key={`${problem.contestId}_${problem.index}`}
             onClick={() => openProblem(problem)}
             className="flex items-center gap-4 px-5 py-3 border-b border-border/50 hover:bg-bg-tertiary cursor-pointer transition-colors group"
           >
+            {/* Star */}
+            <button
+              onClick={e => { e.stopPropagation(); toggleFavorite(problem) }}
+              className={`shrink-0 transition-colors ${
+                isFav ? 'text-yellow-400 hover:text-yellow-300' : 'text-gray-600 hover:text-yellow-400'
+              }`}
+              title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Star size={15} fill={isFav ? 'currentColor' : 'none'} />
+            </button>
+
             {/* Contest + Index */}
             <div className="w-20 shrink-0">
               <span className="text-xs font-mono text-gray-500">
@@ -175,7 +241,13 @@ export default function ProblemBrowser() {
 
             <ChevronRight size={14} className="text-gray-600 group-hover:text-gray-400 shrink-0" />
           </div>
-        ))}
+        )})}
+
+        {!loading && filtered.length > DISPLAY_LIMIT && (
+          <div className="px-5 py-4 text-center text-xs text-gray-500">
+            Showing first {DISPLAY_LIMIT} of {filtered.length} — refine the filters or search to narrow down.
+          </div>
+        )}
       </div>
     </div>
   )

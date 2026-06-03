@@ -2,46 +2,100 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  box-sizing: border-box;
+/* ── VS Code Dark+ ───────────────────────────────────────────── */
+:root, [data-theme="dark"] {
+  --bg-primary:   #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-tertiary:  #2d2d2d;
+  --border:       #474747;
+  --text-primary: #d4d4d4;
+
+  /* Gray scale: low numbers = bright (used for prominent text on dark bg) */
+  --gray-100: #d4d4d4;
+  --gray-200: #c8c8c8;
+  --gray-300: #bbbbbb;
+  --gray-400: #9d9d9d;
+  --gray-500: #6e6e6e;
+  --gray-600: #555555;
+  --gray-700: #3c3c3c;
+  --gray-800: #2d2d2d;
+  --gray-900: #252526;
+
+  --accent-green:  #4ec994;
+  --accent-blue:   #007acc;
+  --accent-red:    #f44747;
+  --accent-yellow: #cca700;
+  --accent-purple: #c586c0;
+
+  --scrollbar-thumb: #424242;
+  --scrollbar-hover: #686868;
 }
+
+/* ── VS Code Light+ ──────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-primary:   #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-tertiary:  #eaeef2;
+  --border:       #d0d7de;
+  --text-primary: #1e1e1e;
+
+  /*
+   * Gray scale maps to VS Code Light semantic colors:
+   *   100–300 → near-black  (headings, primary text)
+   *   400–500 → VS Code blue (#0451a5) — contest IDs, labels, links
+   *   600     → VS Code green (#008000) — tags, muted info
+   *   700–900 → very light neutrals — subtle hover/bg elements
+   */
+  --gray-100: #1e1e1e;
+  --gray-200: #1e1e1e;
+  --gray-300: #3b3b3b;
+  --gray-400: #0451a5;
+  --gray-500: #0451a5;
+  --gray-600: #008000;
+  --gray-700: #d0d7de;
+  --gray-800: #eaeef2;
+  --gray-900: #f6f8fa;
+
+  --accent-green:  #1a7f37;
+  --accent-blue:   #0451a5;
+  --accent-red:    #cd3131;
+  --accent-yellow: #795e26;
+  --accent-purple: #8250df;
+
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-hover: #a8a8a8;
+}
+
+/* ── Base ────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
 
 html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #0d1117;
-  color: #e6edf3;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-/* macOS traffic light padding */
-.titlebar-safe {
-  padding-top: env(titlebar-area-height, 28px);
-}
+/* text-white is hardcoded #fff in Tailwind — remap to themed primary */
+[data-theme="dark"]  .text-white { color: #d4d4d4 !important; }
+[data-theme="light"] .text-white { color: #1e1e1e !important; }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #484f58; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
 
-/* Webview fills its container */
-webview {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  border: none;
-}
+webview { display: flex; width: 100%; height: 100%; border: none; }
 
-/* Verdict badges */
-.verdict-AC  { @apply bg-green-900/50 text-green-400 border border-green-800; }
-.verdict-WA  { @apply bg-red-900/50 text-red-400 border border-red-800; }
-.verdict-TLE { @apply bg-yellow-900/50 text-yellow-400 border border-yellow-800; }
-.verdict-MLE { @apply bg-purple-900/50 text-purple-400 border border-purple-800; }
-.verdict-CE  { @apply bg-gray-700/50 text-gray-400 border border-gray-600; }
-.verdict-RE  { @apply bg-orange-900/50 text-orange-400 border border-orange-800; }
-.verdict-TESTING { @apply bg-blue-900/50 text-blue-400 border border-blue-800 animate-pulse; }
+/* ── Verdict badges ──────────────────────────────────────────── */
+.verdict-AC      { @apply bg-green-500/20  text-green-500  border border-green-500/40; }
+.verdict-WA      { @apply bg-red-500/20    text-red-500    border border-red-500/40; }
+.verdict-TLE     { @apply bg-yellow-500/20 text-yellow-500 border border-yellow-500/40; }
+.verdict-MLE     { @apply bg-purple-500/20 text-purple-500 border border-purple-500/40; }
+.verdict-CE      { background: var(--bg-tertiary); color: var(--gray-400); border: 1px solid var(--border); }
+.verdict-RE      { @apply bg-orange-500/20 text-orange-500 border border-orange-500/40; }
+.verdict-TESTING { @apply bg-blue-500/20   text-blue-500   border border-blue-500/40 animate-pulse; }

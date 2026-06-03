@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Send, ExternalLink, RefreshCw, Loader2, Terminal,
-  FileCode, ChevronDown, ChevronUp
+  FileCode, ChevronDown, ChevronUp, Star
 } from 'lucide-react'
 import TestCaseRunner from '../components/TestCaseRunner'
 import SubmissionStatus from '../components/SubmissionStatus'
@@ -10,7 +10,8 @@ import useStore from '../store/useStore'
 
 const CF_LANG_OPTIONS = [
   { value: 'cpp17',   label: 'C++17 (GCC 9.2)' },
-  { value: 'cpp20',   label: 'C++20 (GCC 11)' },
+  { value: 'cpp20',   label: 'C++20 (GCC 13)' },
+  { value: 'cpp23',   label: 'C++23 (GCC 14)' },
   { value: 'java8',   label: 'Java 8' },
   { value: 'java17',  label: 'Java 17' },
   { value: 'python3', label: 'Python 3' },
@@ -18,7 +19,7 @@ const CF_LANG_OPTIONS = [
 ]
 
 const LOCAL_LANG_MAP = {
-  cpp17: 'cpp', cpp20: 'cpp',
+  cpp17: 'cpp', cpp20: 'cpp', cpp23: 'cpp',
   java8: 'java', java17: 'java',
   python3: 'python', pypy3: 'python'
 }
@@ -26,7 +27,11 @@ const LOCAL_LANG_MAP = {
 export default function ProblemView() {
   const { contestId, index } = useParams()
   const navigate = useNavigate()
-  const { activeProblem, settings, setCurrentSubmission, addSubmission, isLoggedIn } = useStore()
+  const { activeProblem, settings, setCurrentSubmission, addSubmission, isLoggedIn,
+    favorites, toggleFavorite } = useStore()
+
+  const isFav = favorites.some(f => `${f.contestId}_${f.index}` === `${contestId}_${index}`)
+  const favProblem = activeProblem || { contestId: Number(contestId), index, name: `${contestId}${index}` }
 
   const [selectedFile, setSelectedFile] = useState('')
   const [files, setFiles] = useState([])
@@ -97,11 +102,25 @@ export default function ProblemView() {
         const sub = { ...pendingSub, id: result.submissionId }
         setCurrentSubmission(sub)
         addSubmission(sub)
+        if (!result.polling) {
+          // Submitted, but we can't fetch live verdicts (no CF handle resolved).
+          setCurrentSubmission({ ...sub, verdict: undefined })
+          setSubmitError('Submitted to Codeforces, but live verdicts are unavailable — set your CF handle in Settings.')
+        }
+      } else {
+        // Submission could not be confirmed.
+        setCurrentSubmission(null)
+        setSubmitError('Submitted, but Codeforces did not confirm a submission id. Check your submissions on the site.')
       }
     } catch (err) {
-      setSubmitError(err.message === 'NOT_LOGGED_IN'
-        ? 'Not logged in to Codeforces. Use "Login to CF" in the sidebar.'
-        : err.message)
+      const msg = err.message || ''
+      let friendly = msg
+      if (msg.includes('NOT_LOGGED_IN')) {
+        friendly = 'Not logged in to Codeforces. Use "Login to CF" in the sidebar.'
+      } else if (msg.includes('CLOUDFLARE_CHALLENGE')) {
+        friendly = 'Codeforces showed a Cloudflare human-verification check. A window should have opened — complete the check there, then submit again.'
+      }
+      setSubmitError(friendly)
       setCurrentSubmission(null)
     } finally {
       setSubmitting(false)
@@ -136,6 +155,13 @@ export default function ProblemView() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => toggleFavorite(favProblem)}
+            className={`p-1.5 transition-colors ${isFav ? 'text-yellow-400 hover:text-yellow-300' : 'text-gray-500 hover:text-yellow-400'}`}
+            title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <Star size={14} fill={isFav ? 'currentColor' : 'none'} />
+          </button>
           <button
             onClick={reloadWebview}
             className="p-1.5 text-gray-500 hover:text-gray-300 transition-colors"

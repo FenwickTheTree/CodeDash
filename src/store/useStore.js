@@ -46,11 +46,37 @@ const useStore = create((set, get) => ({
     )
   })),
 
+  // Favorites (persisted to the settings store in the main process)
+  favorites: [],
+  setFavorites: (favorites) => set({ favorites }),
+  toggleFavorite: (problem) => set(s => {
+    const key = `${problem.contestId}_${problem.index}`
+    const exists = s.favorites.some(f => `${f.contestId}_${f.index}` === key)
+    const favorites = exists
+      ? s.favorites.filter(f => `${f.contestId}_${f.index}` !== key)
+      : [{
+          contestId: problem.contestId,
+          index: problem.index,
+          name: problem.name,
+          rating: problem.rating,
+          tags: problem.tags
+        }, ...s.favorites]
+    // Persist (fire-and-forget).
+    window.api?.settings?.set({ favorites })
+    return { favorites }
+  }),
+
   // UI state
-  activeTab: 'problems', // problems | settings
+  activeTab: 'problems',
   setActiveTab: (tab) => set({ activeTab: tab }),
   sidebarCollapsed: false,
-  toggleSidebar: () => set(s => ({ sidebarCollapsed: !s.sidebarCollapsed }))
+  toggleSidebar: () => set(s => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+  theme: 'dark',
+  setTheme: (theme) => {
+    document.documentElement.setAttribute('data-theme', theme)
+    window.api?.settings?.set({ theme })
+    set({ theme })
+  }
 }))
 
 export default useStore

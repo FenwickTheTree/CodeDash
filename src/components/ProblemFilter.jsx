@@ -20,7 +20,7 @@ const SORT_OPTIONS = [
 
 export default function ProblemFilter({ onFilter, onRandom, loading }) {
   const [minRating, setMinRating] = useState(800)
-  const [maxRating, setMaxRating] = useState(3500)
+  const [maxRating, setMaxRating] = useState(4000)
   const [selectedTags, setSelectedTags] = useState([])
   const [sortBy, setSortBy] = useState('rating')
   const [tagSearch, setTagSearch] = useState('')
@@ -54,7 +54,7 @@ export default function ProblemFilter({ onFilter, onRandom, loading }) {
           <input
             type="number"
             value={minRating}
-            min={800} max={3500} step={100}
+            min={800} max={4000} step={100}
             onChange={e => setMinRating(Number(e.target.value))}
             className="w-20 bg-bg-tertiary border border-border rounded px-2 py-1 text-sm text-white"
           />
@@ -64,7 +64,7 @@ export default function ProblemFilter({ onFilter, onRandom, loading }) {
           <input
             type="number"
             value={maxRating}
-            min={800} max={3500} step={100}
+            min={800} max={4000} step={100}
             onChange={e => setMaxRating(Number(e.target.value))}
             className="w-20 bg-bg-tertiary border border-border rounded px-2 py-1 text-sm text-white"
           />
